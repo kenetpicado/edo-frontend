@@ -1,67 +1,103 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
 import useHome from '@/composables/useHome'
-import TheTable from '@/components/Table/TheTable.vue'
 import IsLoading from '@/components/IsLoading.vue'
+import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LineElement,
+  LinearScale,
+  PointElement,
+  Title,
+  Tooltip
+} from 'chart.js'
+import { computed } from 'vue'
+import { Line } from 'vue-chartjs'
 
-interface History {
-  name: string
-  expense: number
-  income: number
-  batches: number
-}
+ChartJS.register(
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
 
-const { getHome, home, processing, year } = useHome()
-const currentMonth = new Date().getMonth() + 1
-const history = ref<History[]>([])
+const COLORS = ['#2563eb', '#f97316', '#ef4444', '#16a34a']
 
-const monthsSpanish = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Septiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre'
+const BG = [
+  'rgba(37, 99, 235, 0.1)',
+  'rgba(249, 115, 22, 0.1)',
+  'rgba(239, 68, 68, 0.1)',
+  'rgba(22, 163, 74, 0.1)'
 ]
 
-onMounted(async () => {
-  await getHome()
+const { data, isLoading, isError, error } = useHome()
+
+const chartData = computed(() => {
+  if (!data.value?.labels || !data.value?.datasets) {
+    return {
+      labels: [],
+      datasets: []
+    }
+  }
+  return {
+    labels: data.value.labels || [],
+    datasets: data.value.datasets.map((data: any, index: number) => {
+      const color = COLORS[index] ?? COLORS[COLORS.length - 1]
+      return {
+        ...data,
+        borderColor: color,
+        backgroundColor: BG[index] ?? BG[BG.length - 1],
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: color,
+        pointBorderColor: color,
+        tension: 0.4,
+        fill: true
+      }
+    })
+  }
 })
 
-watch(
-  () => home.value,
-  () => {
-    let data = []
-
-    for (let i = 1; i <= currentMonth; i++) {
-      const month = i < 10 ? `0${i}` : i
-
-      const expense =
-        home.value.expenses.find((item) => item._id === year.value + '-' + month)?.total || 0
-      const income =
-        home.value.incomes.find((item) => item._id === year.value + '-' + month)?.total || 0
-      const batches =
-        home.value.batches.find((item) => item._id === year.value + '-' + month)?.total || 0
-
-      if (expense === 0 && income === 0 && batches === 0) continue
-
-      data.push({
-        name: monthsSpanish[i - 1],
-        expense: expense,
-        income: income,
-        batches: batches
-      })
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: {
+    mode: 'nearest' as const,
+    intersect: false
+  },
+  plugins: {
+    title: {
+      display: false
+    },
+    tooltip: {
+      callbacks: {
+        label: (context: any) => {
+          return `$${context.parsed.y}`
+        }
+      }
     }
-
-    history.value = data
+  },
+  scales: {
+    x: {
+      grid: {
+        display: false
+      }
+    },
+    y: {
+      beginAtZero: true,
+      grid: {
+        display: true
+      }
+    }
   }
-)
+}
 </script>
 
 <template>
@@ -69,43 +105,17 @@ watch(
     <span class="font-bold text-2xl"> Estadisticas </span>
   </header>
 
-  <IsLoading v-if="processing" />
+  <IsLoading v-if="isLoading" />
 
-  <TheTable v-else>
-    <template #header>
-      <th>Mes</th>
-      <th>Facturado</th>
-      <th>Lotes</th>
-      <th>Gastos</th>
-      <th>Ganancia</th>
-    </template>
-    <template #body>
-      <tr v-if="history && !history.length">
-        <td colspan="5" class="text-center text-gray-400">No hay datos</td>
-      </tr>
-      <tr v-for="(item, index) in history" :key="index" class="hover:bg-gray-50">
-        <td>
-          {{ item.name }}
-        </td>
-        <td>
-          <span class="bg-green-100 text-green-600 rounded-lg px-2 py-1">
-            ${{ item.income.toLocaleString() }}
-          </span>
-        </td>
-        <td>
-          <span class="bg-red-100 text-red-600 rounded-lg px-2 py-1">
-            ${{ item.batches.toLocaleString() }}
-          </span>
-        </td>
-        <td>
-          <span class="bg-red-100 text-red-600 rounded-lg px-2 py-1">
-            ${{ item.expense.toLocaleString() }}
-          </span>
-        </td>
-        <td class="font-bold">
-          ${{ (item.income - (item.expense + item.batches)).toLocaleString() }}
-        </td>
-      </tr>
-    </template>
-  </TheTable>
+  <div v-else-if="isError" class="alert alert-error">
+    {{ error?.message || 'Error al cargar los datos' }}
+  </div>
+
+  <div v-else class="card bg-white card-bordered shadow-sm">
+    <div class="card-body">
+      <div class="h-[360px]">
+        <Line :data="chartData" :options="chartOptions" />
+      </div>
+    </div>
+  </div>
 </template>
