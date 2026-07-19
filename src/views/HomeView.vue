@@ -31,10 +31,10 @@ ChartJS.register(
 const COLORS = ['#2563eb', '#f97316', '#ef4444', '#16a34a']
 
 const BG = [
-  'rgba(37, 99, 235, 0.1)',
-  'rgba(249, 115, 22, 0.1)',
-  'rgba(239, 68, 68, 0.1)',
-  'rgba(22, 163, 74, 0.1)'
+  'rgba(37, 99, 235, 0.08)',
+  'rgba(249, 115, 22, 0.08)',
+  'rgba(239, 68, 68, 0.08)',
+  'rgba(22, 163, 74, 0.08)'
 ]
 
 const { data, isLoading, isError, error } = useHome()
@@ -54,8 +54,8 @@ const chartData = computed(() => {
         ...data,
         borderColor: color,
         backgroundColor: BG[index] ?? BG[BG.length - 1],
-        borderWidth: 2,
-        pointRadius: 3,
+        borderWidth: 2.5,
+        pointRadius: 4,
         pointBackgroundColor: color,
         pointBorderColor: color,
         tension: 0.4,
