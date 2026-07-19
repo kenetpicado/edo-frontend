@@ -1,34 +1,39 @@
-import { useUserStore } from '@/stores/user'
-import { storeToRefs } from 'pinia'
-import useCrud from '@/composables/useCrud'
-import useForm from '@/composables/useForm'
-import { ref } from 'vue'
+import api from '@/config/axios'
+import { useMutation, useQuery } from '@tanstack/vue-query'
+import type { IUser } from '@/types'
+
+export interface IUserForm {
+  id: string
+  role: string
+  status: string
+}
 
 export default function useUser() {
-  const { users } = storeToRefs(useUserStore())
-  const { index, processing, update } = useCrud('/users')
-  const openModal = ref<boolean>(false)
+  const getUsers = async (): Promise<IUser[]> => {
+    const { data } = await api.get('/users')
+    return data
+  }
 
-  const { form, reset } = useForm<any>({
-    id: '',
-    role: '',
-    status: ''
+  const updateUser = async (data: IUserForm): Promise<void> => {
+    await api.put(`/users/${data.id}`, data)
+  }
+
+  const mutation = useMutation({
+    mutationFn: updateUser
   })
 
-  async function getUsers() {
-    await index().then((response) => {
-      users.value = response.data
-    })
-  }
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+    staleTime: 1000 * 60 * 5,
+    retry: 2
+  })
 
-  async function updateUser() {
-    await update(form.value.id, form.value).then(() => {
-      getUsers()
-      document.getElementById('resetUser')?.click()
-      reset()
-      openModal.value = false
-    })
+  return {
+    data,
+    isLoading,
+    isError,
+    error,
+    mutation
   }
-
-  return { getUsers, updateUser, users, processing, form, openModal }
 }
