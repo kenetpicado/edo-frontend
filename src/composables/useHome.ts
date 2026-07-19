@@ -1,31 +1,26 @@
-import type { IHome } from '@/types'
-import { useHomeStore } from '@/stores/home'
 import api from '@/config/axios'
-import { storeToRefs } from 'pinia'
-import { ref } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+
+interface IDataset {
+  label: string
+  data: number[]
+}
+
+interface IHomeResponse {
+  labels: string[]
+  datasets: IDataset[]
+}
 
 export default function useHome() {
-  const { home } = storeToRefs(useHomeStore())
-  const processing = ref<boolean>(false)
-  const year = ref(new Date().getFullYear())
-
-  async function getHome() {
-    processing.value = true
-
-    await api
-      .get('/home', {
-        params: {
-          timezoneOffset: new Date().getTimezoneOffset(),
-          year: year.value
-        }
-      })
-      .then((response) => {
-        home.value = response.data as IHome
-      })
-      .finally(() => {
-        processing.value = false
-      })
+  const getHome = async (): Promise<IHomeResponse> => {
+    const { data } = await api.get('/home')
+    return data
   }
 
-  return { getHome, home, processing, year }
+  return useQuery({
+    queryKey: ['home'],
+    queryFn: getHome,
+    staleTime: 1000 * 60 * 1,
+    retry: 2
+  })
 }

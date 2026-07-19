@@ -194,12 +194,6 @@ export interface IExpenseResponse {
   current: number
 }
 
-export interface IHome {
-  expenses: Array<any>
-  incomes: Array<any>
-  batches: Array<any>
-}
-
 export interface IArching {
   id?: string
   date: string
