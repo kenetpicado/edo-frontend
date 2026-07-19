@@ -25,7 +25,7 @@ export default function useUser() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['users'],
     queryFn: getUsers,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 60 * 5,
     retry: 2
   })
 
