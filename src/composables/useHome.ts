@@ -20,7 +20,7 @@ export default function useHome() {
   return useQuery({
     queryKey: ['home'],
     queryFn: getHome,
-    staleTime: 1000 * 60 * 1,
+    staleTime: 1000 * 60 * 2,
     retry: 2
   })
 }
