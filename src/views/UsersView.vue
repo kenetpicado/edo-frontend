@@ -92,7 +92,7 @@ function update() {
       <tr v-else-if="!data || !data.length">
         <td colspan="7" class="text-center">No hay usuarios registrados</td>
       </tr>
-      <tr v-else v-for="(item, index) in data" :key="index" class="hover:bg-gray-50">
+      <tr v-else v-for="(item, index) in data" :key="`user-${index}`" class="hover:bg-gray-50">
         <td>
           {{ item.name }}
         </td>

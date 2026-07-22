@@ -1,7 +1,7 @@
 <template>
   <ul class="menu text-base-content min-h-full w-64 p-4 bg-white space-y-0 border-r">
     <li class="menu-title">
-      <img :src="logo" alt="" class="w-auto h-[4rem] my-1 mx-auto" />
+      <img src="/logo-blue.png" alt="" class="w-auto h-[4rem] my-1 mx-auto" />
     </li>
     <li v-for="(item, index) in items.filter((i) => i.show)" :key="index">
       <span v-if="!item.to" class="menu-title mt-2">
@@ -43,7 +43,6 @@ import { RouterLink, useRoute } from 'vue-router'
 
 const { canShowThisItem } = useAuthStore()
 const route = useRoute()
-const logo = import.meta.env.VITE_APP_LOGO || ''
 
 const items = [
   {

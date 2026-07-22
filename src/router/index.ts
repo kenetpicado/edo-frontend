@@ -32,17 +32,18 @@ const router = createRouter({
           meta: { title: 'Registrarse' }
         }
       ]
-    },
+    }
   ]
 })
 
 router.beforeEach((to, from, next) => {
   const token = Cookies.get('edo_token')
+  const { getCurrentRole } = useAuthStore()
 
   if (to.name === 'billing.show') {
     document.title = 'Factura-' + to.params.id
   } else {
-    document.title = to.meta.title + ' - ' + (import.meta.env.VITE_APP_NAME || 'Dashency')
+    document.title = to.meta.title + ' - Envíos de Occidente'
   }
 
   const roles = to.meta?.roles as string[]
@@ -50,13 +51,11 @@ router.beforeEach((to, from, next) => {
   //Si no hay token y la ruta requiere autenticación
   if (to.meta.requiresAuth && !token) {
     next({ name: 'login' })
-  }
-
-  else if (
+  } else if (
     (!to.meta.requiresAuth && token) ||
-    (to.meta?.roles && !roles.includes(useAuthStore().getCurrentRole()))
+    (to.meta?.roles && !roles.includes(getCurrentRole()))
   ) {
-    next(getFirstAuthorized(useAuthStore().getCurrentRole()))
+    next(getFirstAuthorized(getCurrentRole()))
   }
 
   //Todo OK

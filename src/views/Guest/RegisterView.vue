@@ -26,13 +26,11 @@ function onRegister() {
     title.value = '¡Su registro se ha realizado correctamente!'
   })
 }
-
-const logo = import.meta.env.VITE_APP_LOGO || ''
 </script>
 
 <template>
   <div class="flex flex-col justify-center items-center mb-4">
-    <img :src="logo" alt="Logo" class="w-auto h-[4rem] mx-auto" />
+    <img src="/logo-blue.png" alt="Logo" class="w-auto h-[4rem] mx-auto" />
   </div>
 
   <div v-if="done" class="text-base">
