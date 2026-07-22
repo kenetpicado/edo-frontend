@@ -17,7 +17,7 @@ export default function useShipment() {
     processing.value = true
 
     const params = {
-      page: meta.value.page,
+      page: meta.value.page
     }
 
     try {
@@ -27,8 +27,7 @@ export default function useShipment() {
       meta.value = rest
     } catch (err) {
       processError(err)
-    }
-    finally {
+    } finally {
       processing.value = false
     }
   }
@@ -40,8 +39,7 @@ export default function useShipment() {
     try {
       const response = await api.get('/shipments/' + id)
       shipment.value = response.data
-    }
-    catch (err) {
+    } catch (err) {
       processError(err)
     } finally {
       processing.value = false

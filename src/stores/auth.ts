@@ -29,7 +29,7 @@ export const useAuthStore = defineStore(
     }
 
     function canShowThisItem(route: object) {
-      const authorizedRoles = useRouter().resolve(route).meta?.roles as string[] || []
+      const authorizedRoles = (useRouter().resolve(route).meta?.roles as string[]) || []
       return authorizedRoles.includes(getCurrentRole())
     }
 
