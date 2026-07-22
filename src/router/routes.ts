@@ -134,5 +134,5 @@ export const authRoutes = [
 ]
 
 export function getFirstAuthorized(role: string) {
-  return authRoutes.find(route => route.meta?.roles?.includes(role)) || { name: 'profile' }
+  return authRoutes.find((route) => route.meta?.roles?.includes(role)) || { name: 'profile' }
 }

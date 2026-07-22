@@ -5,7 +5,6 @@ import useAuth from '@/composables/useAuth.js'
 import type { ILoginForm } from '@/types'
 import { Form } from 'vee-validate'
 import FieldForm from '@/components/Form/FieldForm.vue'
-import { config } from '@/config/config'
 
 const { login, processing } = useAuth()
 
@@ -17,7 +16,7 @@ const form = ref<ILoginForm>({
 
 <template>
   <div class="flex flex-col justify-center items-center">
-    <img v-if="config.logo" :src="config.logo" alt="Logo" class="w-auto h-[4rem] mx-auto" />
+    <img src="/logo-blue.png" alt="Logo" class="w-auto h-[4rem] mx-auto" />
   </div>
 
   <Form @submit="login(form)" class="mb-6">
