@@ -2,7 +2,6 @@
 import useHome from '@/composables/useHome'
 import IsLoading from '@/components/IsLoading.vue'
 import {
-  BarElement,
   CategoryScale,
   Chart as ChartJS,
   Filler,
@@ -17,7 +16,6 @@ import { computed } from 'vue'
 import { Line } from 'vue-chartjs'
 
 ChartJS.register(
-  BarElement,
   CategoryScale,
   LinearScale,
   PointElement,
@@ -48,10 +46,12 @@ const chartData = computed(() => {
   }
   return {
     labels: data.value.labels || [],
-    datasets: data.value.datasets.map((data: any, index: number) => {
+    datasets: data.value.datasets.map((d: any, index: number) => {
+      // Create a plain (non-reactive) deep copy so Chart.js can mutate it safely
+      const dataset = JSON.parse(JSON.stringify(d))
       const color = COLORS[index] ?? COLORS[COLORS.length - 1]
       return {
-        ...data,
+        ...dataset,
         borderColor: color,
         backgroundColor: BG[index] ?? BG[BG.length - 1],
         borderWidth: 2.5,
