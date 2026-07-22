@@ -28,3 +28,15 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# Local environment files
+.env
+.env.local
+.env.*
+
+# Tool caches and temporary files
+.cache
+.parcel-cache
+.vite
+.eslintcache
+.sass-cache
