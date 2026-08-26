@@ -40,6 +40,7 @@
         <th>Piezas</th>
         <th>Peso (lbs)</th>
         <th>Cliente</th>
+        <th>Tipo</th>
         <th>Ingreso</th>
       </template>
       <template #body>
@@ -68,6 +69,9 @@
           </td>
           <td>
             <input type="text" class="input w-full input-bordered input-sm" v-model="item.client" />
+          </td>
+          <td>
+            {{ item.service }}
           </td>
           <td>
             {{ item.entryDate }}
@@ -196,39 +200,29 @@ function processFile(file: File) {
         const data = event.target?.result
         const workbook = XLSX.read(data, { type: 'array', cellDates: true })
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        const jsonData = XLSX.utils.sheet_to_json(sheet)
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]
 
-        const requiredFields = [
-          'Guide',
-          'Description',
-          'Pieces',
-          'Gross Weight',
-          'Client',
-          'FechaIngreso'
-        ]
+        const headerRowIndex = rows.findIndex((row) => row[0] === 'Entry Number')
 
-        const packages = jsonData
-          .filter((item: any) => item.Guide)
-          .map((item: any, index: number) => {
-            const missingFields = requiredFields.filter((field) => !(field in item))
+        if (headerRowIndex === -1) {
+          throw new Error('No se encontró la fila de encabezados en el archivo.')
+        }
 
-            if (missingFields.length > 0) {
-              throw new Error(`Los campos ${missingFields.join(', ')} son requeridos`)
-            }
+        const dataRows = rows.slice(headerRowIndex + 1)
 
-            if (typeof item['Gross Weight'] !== 'number') {
-              throw new Error('El campo "Gross Weight" debe ser un número, fila: ' + (index + 2))
-            }
-
-            return {
-              guide: item['Guide'],
-              description: item['Description'].toString().trim(),
-              pieces: item['Pieces'],
-              grossWeight: item['Gross Weight'],
-              client: item['Client'].toString().trim(),
-              entryDate: formatDate(item['FechaIngreso'])
-            }
-          })
+        const packages = dataRows
+          .filter((row) => typeof row[0] === 'string' && row[0].startsWith('REI-'))
+          .map((row) => ({
+            guide: row[0],
+            description: String(row[14] ?? ''),
+            pieces: Number(row[19]) || 0,
+            grossWeight: Number(row[18]) || 0,
+            client: String(row[9] ?? ''),
+            entryDate: row[1] ? formatDate(row[1]) : '',
+            tracking: String(row[7] ?? ''),
+            carrier: String(row[8] ?? ''),
+            service: getType(String(row[11] ?? ''))
+          }))
 
         resolve(packages)
       } catch (error) {
@@ -243,10 +237,18 @@ function processFile(file: File) {
 }
 
 function formatDate(date: any): string {
-  if (typeof date === 'string') {
-    const [day, month, year] = date.split('/').map((part) => part.padStart(2, '0'))
-    return `${year}-${month}-${day}`
+  return format(new Date(date), 'YYYY-MM-DD')
+}
+
+function getType(value?: string) {
+  if (value === 'Ocean') {
+    return 'MARITIMO'
   }
-  return format(date, 'YYYY-MM-DD')
+
+  if (value === 'Air') {
+    return 'AEREO'
+  }
+
+  return 'No reconocido'
 }
 </script>

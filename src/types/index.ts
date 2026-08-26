@@ -58,6 +58,8 @@ export interface IPackage {
   createdAt?: Date
   type?: string
   billing?: string
+  carrier?: string
+  service?: string
 }
 
 export interface IMailPackage {
