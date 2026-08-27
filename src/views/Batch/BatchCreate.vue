@@ -40,11 +40,13 @@
         <th>Piezas</th>
         <th>Peso (lbs)</th>
         <th>Cliente</th>
+        <th>Tipo</th>
         <th>Ingreso</th>
+        <th></th>
       </template>
       <template #body>
         <tr v-if="!form.packages.length">
-          <td colspan="7" class="text-center">No hay datos que mostrar</td>
+          <td colspan="9" class="text-center">No hay datos que mostrar</td>
         </tr>
         <tr v-else v-for="(item, index) in form.packages" :key="index" class="hover:bg-gray-50">
           <td>
@@ -70,11 +72,34 @@
             <input type="text" class="input w-full input-bordered input-sm" v-model="item.client" />
           </td>
           <td>
+            {{ item.service }}
+          </td>
+          <td>
             {{ item.entryDate }}
+          </td>
+          <td>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm text-error"
+              @click="removePackage(index)"
+            >
+              <IconTrash size="18" />
+            </button>
           </td>
         </tr>
       </template>
     </TheTable>
+
+    <div class="flex justify-end mt-4">
+      <BtnSecondary
+        type="button"
+        :disabled="!form.type || !hasNonMatchingPackages"
+        @click="removeNonMatchingPackages"
+      >
+        <IconTrash size="18" class="mr-1" />
+        Eliminar guías de otro servicio
+      </BtnSecondary>
+    </div>
 
     <div class="grid grid-cols-4 gap-4 mt-6">
       <FieldForm
@@ -102,6 +127,15 @@
       </FieldForm>
     </div>
 
+    <div class="alert alert-info mt-6 mb-4">
+      <IconInfoCircle size="20" />
+      <span>
+        <strong>Nota:</strong> solo se guardarán los paquetes cuya guía no esté ya registrada en el
+        sistema. Si alguna guía ya existe, será omitida; por favor, asegúrese de que los datos sean
+        correctos.
+      </span>
+    </div>
+
     <div class="flex justify-end gap-4">
       <BtnPrimary type="submit" :loading="processing" :disabled="!form.packages.length">
         Guardar
@@ -113,9 +147,9 @@
 <script setup lang="ts">
 import BtnPrimary from '@/components/Buttons/BtnPrimary.vue'
 import BtnSecondary from '@/components/Buttons/BtnSecondary.vue'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import TheTable from '@/components/Table/TheTable.vue'
-import { IconUpload } from '@tabler/icons-vue'
+import { IconUpload, IconTrash, IconInfoCircle } from '@tabler/icons-vue'
 import toast from '@/utils/toast'
 import type { IBatch, IPackage } from '@/types'
 import useBatch from '@/composables/useBatch'
@@ -123,7 +157,7 @@ import Loading from 'vue-loading-overlay'
 import 'vue-loading-overlay/dist/css/index.css'
 import * as XLSX from 'xlsx'
 import usePrice from '@/composables/usePrice'
-import { format } from '@formkit/tempo'
+import { format, tzDate } from '@formkit/tempo'
 import { useFileDialog } from '@vueuse/core'
 import { Form } from 'vee-validate'
 import FieldForm from '@/components/Form/FieldForm.vue'
@@ -141,6 +175,10 @@ const form = ref<IBatch>({
   packages: [],
   code: ''
 })
+
+const hasNonMatchingPackages = computed(() =>
+  form.value.packages.some((pkg) => pkg.service !== form.value.type)
+)
 
 const { open, onChange } = useFileDialog({
   accept:
@@ -180,11 +218,30 @@ function onSubmit() {
     return
   }
 
+  const invalidPackage = form.value.packages.find((pkg) => pkg.service !== form.value.type)
+
+  if (invalidPackage) {
+    toast.error(`El servicio de la guía ${invalidPackage.guide} no coincide con el tipo de lote`)
+    return
+  }
+
   storeBatch(form.value, () => {
     form.value.total = 0
     form.value.type = ''
     form.value.packages = []
   })
+}
+
+function removePackage(index: number) {
+  form.value.packages.splice(index, 1)
+}
+
+function removeNonMatchingPackages() {
+  const initialCount = form.value.packages.length
+  form.value.packages = form.value.packages.filter((pkg) => pkg.service === form.value.type)
+  const removedCount = initialCount - form.value.packages.length
+
+  toast.success(`Se eliminaron ${removedCount} guía${removedCount === 1 ? '' : 's'} de otro servicio`)
 }
 
 function processFile(file: File) {
@@ -196,39 +253,29 @@ function processFile(file: File) {
         const data = event.target?.result
         const workbook = XLSX.read(data, { type: 'array', cellDates: true })
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        const jsonData = XLSX.utils.sheet_to_json(sheet)
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]
 
-        const requiredFields = [
-          'Guide',
-          'Description',
-          'Pieces',
-          'Gross Weight',
-          'Client',
-          'FechaIngreso'
-        ]
+        const headerRowIndex = rows.findIndex((row) => row[0] === 'Entry Number')
 
-        const packages = jsonData
-          .filter((item: any) => item.Guide)
-          .map((item: any, index: number) => {
-            const missingFields = requiredFields.filter((field) => !(field in item))
+        if (headerRowIndex === -1) {
+          throw new Error('No se encontró la fila de encabezados en el archivo.')
+        }
 
-            if (missingFields.length > 0) {
-              throw new Error(`Los campos ${missingFields.join(', ')} son requeridos`)
-            }
+        const dataRows = rows.slice(headerRowIndex + 1)
 
-            if (typeof item['Gross Weight'] !== 'number') {
-              throw new Error('El campo "Gross Weight" debe ser un número, fila: ' + (index + 2))
-            }
-
-            return {
-              guide: item['Guide'],
-              description: item['Description'].toString().trim(),
-              pieces: item['Pieces'],
-              grossWeight: item['Gross Weight'],
-              client: item['Client'].toString().trim(),
-              entryDate: formatDate(item['FechaIngreso'])
-            }
-          })
+        const packages = dataRows
+          .filter((row) => typeof row[0] === 'string' && row[0].startsWith('REI-'))
+          .map((row) => ({
+            guide: row[0],
+            description: String(row[14] ?? ''),
+            pieces: Number(row[19]) || 0,
+            grossWeight: Number(row[18]) || 0,
+            client: String(row[9] ?? ''),
+            entryDate: row[1] ? formatDate(row[1]) : '',
+            tracking: String(row[7] ?? ''),
+            carrier: String(row[8] ?? ''),
+            service: getType(String(row[11] ?? ''))
+          }))
 
         resolve(packages)
       } catch (error) {
@@ -242,11 +289,28 @@ function processFile(file: File) {
   })
 }
 
-function formatDate(date: any): string {
-  if (typeof date === 'string') {
-    const [day, month, year] = date.split('/').map((part) => part.padStart(2, '0'))
-    return `${year}-${month}-${day}`
+function formatDate(dateInput: string | Date): string {
+  if (dateInput instanceof Date) {
+    return format({ date: dateInput, format: 'YYYY-MM-DD', tz: 'America/Managua' })
   }
-  return format(date, 'YYYY-MM-DD')
+
+  const [datePart, timePart] = dateInput.split(' ')
+  const [month, day, year] = datePart.split('/')
+  const isoString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}:00`
+  const date = tzDate(isoString, 'America/New_York')
+
+  return format({ date, format: 'YYYY-MM-DD', tz: 'America/Managua' })
+}
+
+function getType(value?: string) {
+  if (value === 'Ocean') {
+    return 'MARITIMO'
+  }
+
+  if (value === 'Air') {
+    return 'AEREO'
+  }
+
+  return 'No reconocido'
 }
 </script>
