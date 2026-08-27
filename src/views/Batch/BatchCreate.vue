@@ -146,7 +146,7 @@ import Loading from 'vue-loading-overlay'
 import 'vue-loading-overlay/dist/css/index.css'
 import * as XLSX from 'xlsx'
 import usePrice from '@/composables/usePrice'
-import { format } from '@formkit/tempo'
+import { format, tzDate } from '@formkit/tempo'
 import { useFileDialog } from '@vueuse/core'
 import { Form } from 'vee-validate'
 import FieldForm from '@/components/Form/FieldForm.vue'
@@ -203,9 +203,7 @@ function onSubmit() {
     return
   }
 
-  const invalidPackage = form.value.packages.find(
-    (pkg) => pkg.service !== form.value.type
-  )
+  const invalidPackage = form.value.packages.find((pkg) => pkg.service !== form.value.type)
 
   if (invalidPackage) {
     toast.error(`El servicio de la guía ${invalidPackage.guide} no coincide con el tipo de lote`)
@@ -268,8 +266,17 @@ function processFile(file: File) {
   })
 }
 
-function formatDate(date: any): string {
-  return format(new Date(date), 'YYYY-MM-DD')
+function formatDate(dateInput: string | Date): string {
+  if (dateInput instanceof Date) {
+    return format({ date: dateInput, format: 'YYYY-MM-DD', tz: 'America/Managua' })
+  }
+
+  const [datePart, timePart] = dateInput.split(' ')
+  const [month, day, year] = datePart.split('/')
+  const isoString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}:00`
+  const date = tzDate(isoString, 'America/New_York')
+
+  return format({ date, format: 'YYYY-MM-DD', tz: 'America/Managua' })
 }
 
 function getType(value?: string) {
