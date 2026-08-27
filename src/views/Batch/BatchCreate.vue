@@ -90,6 +90,17 @@
       </template>
     </TheTable>
 
+    <div class="flex justify-end mt-4">
+      <BtnSecondary
+        type="button"
+        :disabled="!form.type || !hasNonMatchingPackages"
+        @click="removeNonMatchingPackages"
+      >
+        <IconTrash size="18" class="mr-1" />
+        Eliminar guías de otro servicio
+      </BtnSecondary>
+    </div>
+
     <div class="grid grid-cols-4 gap-4 mt-6">
       <FieldForm
         text="Total"
@@ -136,7 +147,7 @@
 <script setup lang="ts">
 import BtnPrimary from '@/components/Buttons/BtnPrimary.vue'
 import BtnSecondary from '@/components/Buttons/BtnSecondary.vue'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import TheTable from '@/components/Table/TheTable.vue'
 import { IconUpload, IconTrash, IconInfoCircle } from '@tabler/icons-vue'
 import toast from '@/utils/toast'
@@ -164,6 +175,10 @@ const form = ref<IBatch>({
   packages: [],
   code: ''
 })
+
+const hasNonMatchingPackages = computed(() =>
+  form.value.packages.some((pkg) => pkg.service !== form.value.type)
+)
 
 const { open, onChange } = useFileDialog({
   accept:
@@ -219,6 +234,14 @@ function onSubmit() {
 
 function removePackage(index: number) {
   form.value.packages.splice(index, 1)
+}
+
+function removeNonMatchingPackages() {
+  const initialCount = form.value.packages.length
+  form.value.packages = form.value.packages.filter((pkg) => pkg.service === form.value.type)
+  const removedCount = initialCount - form.value.packages.length
+
+  toast.success(`Se eliminaron ${removedCount} guía${removedCount === 1 ? '' : 's'} de otro servicio`)
 }
 
 function processFile(file: File) {
