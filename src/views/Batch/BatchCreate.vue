@@ -42,10 +42,11 @@
         <th>Cliente</th>
         <th>Tipo</th>
         <th>Ingreso</th>
+        <th></th>
       </template>
       <template #body>
         <tr v-if="!form.packages.length">
-          <td colspan="7" class="text-center">No hay datos que mostrar</td>
+          <td colspan="9" class="text-center">No hay datos que mostrar</td>
         </tr>
         <tr v-else v-for="(item, index) in form.packages" :key="index" class="hover:bg-gray-50">
           <td>
@@ -75,6 +76,15 @@
           </td>
           <td>
             {{ item.entryDate }}
+          </td>
+          <td>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm text-error"
+              @click="removePackage(index)"
+            >
+              <IconTrash size="18" />
+            </button>
           </td>
         </tr>
       </template>
@@ -106,6 +116,15 @@
       </FieldForm>
     </div>
 
+    <div class="alert alert-info mt-6 mb-4">
+      <IconInfoCircle size="20" />
+      <span>
+        <strong>Nota:</strong> solo se guardarán los paquetes cuya guía no esté ya registrada en el
+        sistema. Si alguna guía ya existe, será omitida; por favor, asegúrese de que los datos sean
+        correctos.
+      </span>
+    </div>
+
     <div class="flex justify-end gap-4">
       <BtnPrimary type="submit" :loading="processing" :disabled="!form.packages.length">
         Guardar
@@ -119,7 +138,7 @@ import BtnPrimary from '@/components/Buttons/BtnPrimary.vue'
 import BtnSecondary from '@/components/Buttons/BtnSecondary.vue'
 import { onMounted, ref } from 'vue'
 import TheTable from '@/components/Table/TheTable.vue'
-import { IconUpload } from '@tabler/icons-vue'
+import { IconUpload, IconTrash, IconInfoCircle } from '@tabler/icons-vue'
 import toast from '@/utils/toast'
 import type { IBatch, IPackage } from '@/types'
 import useBatch from '@/composables/useBatch'
@@ -184,11 +203,24 @@ function onSubmit() {
     return
   }
 
+  const invalidPackage = form.value.packages.find(
+    (pkg) => pkg.service !== form.value.type
+  )
+
+  if (invalidPackage) {
+    toast.error(`El servicio de la guía ${invalidPackage.guide} no coincide con el tipo de lote`)
+    return
+  }
+
   storeBatch(form.value, () => {
     form.value.total = 0
     form.value.type = ''
     form.value.packages = []
   })
+}
+
+function removePackage(index: number) {
+  form.value.packages.splice(index, 1)
 }
 
 function processFile(file: File) {
