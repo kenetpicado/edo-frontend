@@ -163,6 +163,7 @@ import { Form } from 'vee-validate'
 import FieldForm from '@/components/Form/FieldForm.vue'
 
 const isLoading = ref<boolean>(false)
+const isVersion1 = ref<boolean>(false)
 
 const { storeBatch, processing } = useBatch()
 const { prices, getPrices } = usePrice()
@@ -176,8 +177,8 @@ const form = ref<IBatch>({
   code: ''
 })
 
-const hasNonMatchingPackages = computed(() =>
-  form.value.packages.some((pkg) => pkg.service !== form.value.type)
+const hasNonMatchingPackages = computed(
+  () => !isVersion1.value && form.value.packages.some((pkg) => pkg.service !== form.value.type)
 )
 
 const { open, onChange } = useFileDialog({
@@ -192,6 +193,7 @@ onMounted(() => {
 
 onChange((files: any) => {
   errorMessage.value = ''
+  isVersion1.value = false
   isLoading.value = true
 
   if (!files.length) {
@@ -218,7 +220,9 @@ function onSubmit() {
     return
   }
 
-  const invalidPackage = form.value.packages.find((pkg) => pkg.service !== form.value.type)
+  const invalidPackage = isVersion1.value
+    ? undefined
+    : form.value.packages.find((pkg) => pkg.service !== form.value.type)
 
   if (invalidPackage) {
     toast.error(`El servicio de la guía ${invalidPackage.guide} no coincide con el tipo de lote`)
@@ -237,6 +241,8 @@ function removePackage(index: number) {
 }
 
 function removeNonMatchingPackages() {
+  if (isVersion1.value) return
+
   const initialCount = form.value.packages.length
   form.value.packages = form.value.packages.filter((pkg) => pkg.service === form.value.type)
   const removedCount = initialCount - form.value.packages.length
@@ -265,6 +271,7 @@ function processFile(file: File) {
         }
 
         if (headerV1 !== -1) {
+          isVersion1.value = true
           const dataRows = rows.slice(headerV1 + 1)
 
           const packages = dataRows
