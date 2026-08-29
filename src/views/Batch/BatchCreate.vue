@@ -157,10 +157,11 @@ import Loading from 'vue-loading-overlay'
 import 'vue-loading-overlay/dist/css/index.css'
 import * as XLSX from 'xlsx'
 import usePrice from '@/composables/usePrice'
-import { format, tzDate } from '@formkit/tempo'
+import { format } from '@formkit/tempo'
 import { useFileDialog } from '@vueuse/core'
 import { Form } from 'vee-validate'
 import FieldForm from '@/components/Form/FieldForm.vue'
+import { parseDate } from 'chrono-node'
 
 const isLoading = ref<boolean>(false)
 const isVersion1 = ref<boolean>(false)
@@ -319,18 +320,17 @@ function processFile(file: File) {
 }
 
 function formatDate(dateInput: string | Date): string {
-  if (dateInput instanceof Date || dateInput.includes('T')) {
-    return format({ date: new Date(dateInput), format: 'YYYY-MM-DD', tz: 'America/Managua' })
+  const def = format({ date: new Date(), format: 'YYYY-MM-DD', tz: 'America/Managua' })
+
+  try {
+    const temp = dateInput instanceof Date ? dateInput.toISOString() : dateInput
+
+    const parsed = parseDate(temp)
+
+    return parsed ? format({ date: parsed, format: 'YYYY-MM-DD', tz: 'America/Managua' }) : def
+  } catch (error) {
+    return def
   }
-
-  const [datePart, timePart] = dateInput.split(' ')
-  const [month, day, year] = datePart.split('/')
-  const date = tzDate(
-    `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}:00`,
-    'America/New_York'
-  )
-
-  return format({ date, format: 'YYYY-MM-DD', tz: 'America/Managua' })
 }
 
 function getType(value?: string) {
