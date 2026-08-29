@@ -10,7 +10,7 @@ import useForm from '@/composables/useForm'
 
 export default function usePackage() {
   const { packages, mailPackages, meta } = storeToRefs(usePackageStore())
-  const { index, processing, update, request } = useCrud('/packages')
+  const { index, processing, update, store, request } = useCrud('/packages')
   const openModal = ref<boolean>(false)
 
   const queryParams = ref<any>({
@@ -29,7 +29,9 @@ export default function usePackage() {
     description: '',
     pieces: 0,
     grossWeight: 0,
-    entryDate: ''
+    entryDate: '',
+    tracking: '',
+    type: ''
   })
 
   async function getPackages() {
@@ -76,8 +78,21 @@ export default function usePackage() {
 
   function updatePackage() {
     update(form.value.id as string, form.value).then(() => {
-      document.getElementById('resetPackage')?.click()
+      onSuccess()
     })
+  }
+
+  async function storePackage() {
+    await store(form.value).then(() => {
+      onSuccess()
+    })
+  }
+
+  function onSuccess() {
+    openModal.value = false
+    document.getElementById('resetPackage')?.click()
+    reset()
+    getPackages()
   }
 
   function bulkPackages(data: IMailPackage[], messageIds: string[], callback: () => void) {
@@ -106,6 +121,7 @@ export default function usePackage() {
     processing,
     queryParams,
     updatePackage,
+    storePackage,
     bulkPackages,
     getMailPackages,
     mailPackages,

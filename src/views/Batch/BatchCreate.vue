@@ -163,6 +163,7 @@ import { Form } from 'vee-validate'
 import FieldForm from '@/components/Form/FieldForm.vue'
 
 const isLoading = ref<boolean>(false)
+const isVersion1 = ref<boolean>(false)
 
 const { storeBatch, processing } = useBatch()
 const { prices, getPrices } = usePrice()
@@ -176,8 +177,8 @@ const form = ref<IBatch>({
   code: ''
 })
 
-const hasNonMatchingPackages = computed(() =>
-  form.value.packages.some((pkg) => pkg.service !== form.value.type)
+const hasNonMatchingPackages = computed(
+  () => !isVersion1.value && form.value.packages.some((pkg) => pkg.service !== form.value.type)
 )
 
 const { open, onChange } = useFileDialog({
@@ -192,6 +193,7 @@ onMounted(() => {
 
 onChange((files: any) => {
   errorMessage.value = ''
+  isVersion1.value = false
   isLoading.value = true
 
   if (!files.length) {
@@ -218,7 +220,9 @@ function onSubmit() {
     return
   }
 
-  const invalidPackage = form.value.packages.find((pkg) => pkg.service !== form.value.type)
+  const invalidPackage = isVersion1.value
+    ? undefined
+    : form.value.packages.find((pkg) => pkg.service !== form.value.type)
 
   if (invalidPackage) {
     toast.error(`El servicio de la guía ${invalidPackage.guide} no coincide con el tipo de lote`)
@@ -237,11 +241,15 @@ function removePackage(index: number) {
 }
 
 function removeNonMatchingPackages() {
+  if (isVersion1.value) return
+
   const initialCount = form.value.packages.length
   form.value.packages = form.value.packages.filter((pkg) => pkg.service === form.value.type)
   const removedCount = initialCount - form.value.packages.length
 
-  toast.success(`Se eliminaron ${removedCount} guía${removedCount === 1 ? '' : 's'} de otro servicio`)
+  toast.success(
+    `Se eliminaron ${removedCount} guía${removedCount === 1 ? '' : 's'} de otro servicio`
+  )
 }
 
 function processFile(file: File) {
@@ -255,13 +263,34 @@ function processFile(file: File) {
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]
 
-        const headerRowIndex = rows.findIndex((row) => row[0] === 'Entry Number')
+        const headerV1 = rows.findIndex((row) => row[0] === 'Guide')
+        const headerV2 = rows.findIndex((row) => row[0] === 'Entry Number')
 
-        if (headerRowIndex === -1) {
+        if (headerV1 === -1 && headerV2 === -1) {
           throw new Error('No se encontró la fila de encabezados en el archivo.')
         }
 
-        const dataRows = rows.slice(headerRowIndex + 1)
+        if (headerV1 !== -1) {
+          isVersion1.value = true
+          const dataRows = rows.slice(headerV1 + 1)
+
+          const packages = dataRows
+            .filter((row) => row[0] !== undefined && row[0] !== '')
+            .map((row) => ({
+              guide: String(row[0]),
+              description: String(row[1] ?? ''),
+              pieces: Number(row[2]) || 0,
+              grossWeight: Number(row[5]) || 0,
+              client: String(row[4] ?? ''),
+              entryDate: row[6] ? formatDate(row[6]) : '',
+              carrier: String(row[3] ?? '')
+            }))
+
+          resolve(packages)
+          return
+        }
+
+        const dataRows = rows.slice(headerV2 + 1)
 
         const packages = dataRows
           .filter((row) => typeof row[0] === 'string' && row[0].startsWith('REI-'))
@@ -290,14 +319,16 @@ function processFile(file: File) {
 }
 
 function formatDate(dateInput: string | Date): string {
-  if (dateInput instanceof Date) {
-    return format({ date: dateInput, format: 'YYYY-MM-DD', tz: 'America/Managua' })
+  if (dateInput instanceof Date || dateInput.includes('T')) {
+    return format({ date: new Date(dateInput), format: 'YYYY-MM-DD', tz: 'America/Managua' })
   }
 
   const [datePart, timePart] = dateInput.split(' ')
   const [month, day, year] = datePart.split('/')
-  const isoString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}:00`
-  const date = tzDate(isoString, 'America/New_York')
+  const date = tzDate(
+    `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}:00`,
+    'America/New_York'
+  )
 
   return format({ date, format: 'YYYY-MM-DD', tz: 'America/Managua' })
 }
