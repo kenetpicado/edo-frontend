@@ -10,7 +10,8 @@ import {
   LinearScale,
   PointElement,
   Title,
-  Tooltip
+  Tooltip,
+  type ChartOptions
 } from 'chart.js'
 import { computed } from 'vue'
 import { Line } from 'vue-chartjs'
@@ -65,35 +66,51 @@ const chartData = computed(() => {
   }
 })
 
-const chartOptions = {
+const lineChartOptions: ChartOptions<'line'> = {
   responsive: true,
   maintainAspectRatio: false,
   interaction: {
-    mode: 'nearest' as const,
+    mode: 'nearest',
+    axis: 'x',
     intersect: false
   },
   plugins: {
+    legend: {
+      display: false
+    },
     title: {
       display: false
     },
     tooltip: {
-      callbacks: {
-        label: (context: any) => {
-          return `$${context.parsed.y}`
-        }
-      }
+      mode: 'nearest',
+      axis: 'x',
+      intersect: false
     }
   },
   scales: {
     x: {
       grid: {
         display: false
+      },
+      border: {
+        display: false
+      },
+      ticks: {
+        color: '#94a3b8',
+        maxTicksLimit: 10
       }
     },
     y: {
       beginAtZero: true,
+      border: {
+        display: false
+      },
       grid: {
-        display: true
+        color: '#f1f5f9'
+      },
+      ticks: {
+        precision: 0,
+        color: '#64748b'
       }
     }
   }
@@ -114,7 +131,7 @@ const chartOptions = {
   <div v-else class="card bg-white card-bordered shadow-sm">
     <div class="card-body">
       <div class="h-[360px]">
-        <Line :data="chartData" :options="chartOptions" />
+        <Line :data="chartData" :options="lineChartOptions" />
       </div>
     </div>
   </div>

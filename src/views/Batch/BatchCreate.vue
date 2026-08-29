@@ -241,7 +241,9 @@ function removeNonMatchingPackages() {
   form.value.packages = form.value.packages.filter((pkg) => pkg.service === form.value.type)
   const removedCount = initialCount - form.value.packages.length
 
-  toast.success(`Se eliminaron ${removedCount} guía${removedCount === 1 ? '' : 's'} de otro servicio`)
+  toast.success(
+    `Se eliminaron ${removedCount} guía${removedCount === 1 ? '' : 's'} de otro servicio`
+  )
 }
 
 function processFile(file: File) {
@@ -255,13 +257,33 @@ function processFile(file: File) {
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]
 
-        const headerRowIndex = rows.findIndex((row) => row[0] === 'Entry Number')
+        const headerV1 = rows.findIndex((row) => row[0] === 'Guide')
+        const headerV2 = rows.findIndex((row) => row[0] === 'Entry Number')
 
-        if (headerRowIndex === -1) {
+        if (headerV1 === -1 && headerV2 === -1) {
           throw new Error('No se encontró la fila de encabezados en el archivo.')
         }
 
-        const dataRows = rows.slice(headerRowIndex + 1)
+        if (headerV1 !== -1) {
+          const dataRows = rows.slice(headerV1 + 1)
+
+          const packages = dataRows
+            .filter((row) => row[0] !== undefined && row[0] !== '')
+            .map((row) => ({
+              guide: String(row[0]),
+              description: String(row[1] ?? ''),
+              pieces: Number(row[2]) || 0,
+              grossWeight: Number(row[5]) || 0,
+              client: String(row[4] ?? ''),
+              entryDate: row[6] ? formatDate(row[6]) : '',
+              carrier: String(row[3] ?? '')
+            }))
+
+          resolve(packages)
+          return
+        }
+
+        const dataRows = rows.slice(headerV2 + 1)
 
         const packages = dataRows
           .filter((row) => typeof row[0] === 'string' && row[0].startsWith('REI-'))
@@ -292,6 +314,10 @@ function processFile(file: File) {
 function formatDate(dateInput: string | Date): string {
   if (dateInput instanceof Date) {
     return format({ date: dateInput, format: 'YYYY-MM-DD', tz: 'America/Managua' })
+  }
+
+  if (dateInput.includes('T')) {
+    return format({ date: new Date(dateInput), format: 'YYYY-MM-DD', tz: 'America/Managua' })
   }
 
   const [datePart, timePart] = dateInput.split(' ')
