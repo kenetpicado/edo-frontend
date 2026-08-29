@@ -43,7 +43,7 @@
           name="piezas"
           v-model="form.pieces"
           type="number"
-          rules="required"
+          rules="required|min_value:1"
           placeholder="ej. 1"
         />
 
@@ -64,7 +64,7 @@
           rules="required"
         />
 
-        <FieldForm as="select" text="Tipo" name="tipo" v-model="form.type">
+        <FieldForm as="select" text="Tipo" name="tipo" v-model="form.type" rules="required">
           <option value="">Selecciona un tipo</option>
           <option v-for="price in prices" :value="price.type" :key="price.id">
             {{ price.type }}
