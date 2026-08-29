@@ -1,10 +1,18 @@
 <template>
   <header class="flex items-center justify-between mb-6">
     <span class="font-bold text-2xl">Paquetes</span>
+    <BtnPrimary @click="createPackage"> Nuevo </BtnPrimary>
   </header>
 
-  <DialogForm title="Paquete" :isOpen="openModal">
+  <DialogForm :title="isEdit ? 'Editar Paquete' : 'Nuevo Paquete'" :isOpen="openModal">
     <Form @submit="onSubmit" class="flex flex-col gap-4">
+      <FieldForm
+        text="Tracking"
+        name="tracking"
+        v-model="form.tracking"
+        placeholder="ej. GFUS01067162223171"
+      />
+
       <FieldForm
         text="Cliente"
         name="cliente"
@@ -23,6 +31,14 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <FieldForm
+          text="Guía"
+          name="guia"
+          v-model="form.guide"
+          rules="required"
+          placeholder="ej. REI-3736"
+        />
+
+        <FieldForm
           text="Piezas"
           name="piezas"
           v-model="form.pieces"
@@ -39,11 +55,21 @@
           rules="required"
           placeholder="ej. 5"
         />
+
+        <FieldForm
+          text="Ingreso"
+          name="entryDate"
+          v-model="form.entryDate"
+          type="date"
+          rules="required"
+        />
       </div>
 
       <div class="modal-action">
         <BtnSecondary type="reset" id="resetPackage" @click="onCancel">Cancelar</BtnSecondary>
-        <BtnPrimary type="submit" :loading="processing"> Actualizar </BtnPrimary>
+        <BtnPrimary type="submit" :loading="processing">
+          {{ isEdit ? 'Actualizar' : 'Guardar' }}
+        </BtnPrimary>
       </div>
     </Form>
   </DialogForm>
@@ -152,7 +178,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import usePackage from '@/composables/usePackage'
 import { watchDebounced } from '@vueuse/core'
 import status from '@/utils/status'
@@ -174,6 +200,7 @@ const {
   queryParams,
   processing,
   updatePackage,
+  storePackage,
   meta,
   form,
   openModal,
@@ -181,27 +208,45 @@ const {
 } = usePackage()
 const { prices, getPrices } = usePrice()
 
+const isEdit = ref<boolean>(false)
+
 onMounted(() => {
   getPackages()
   getPrices()
 })
 
+function createPackage() {
+  reset()
+  form.value.entryDate = format(new Date(), 'YYYY-MM-DD')
+  isEdit.value = false
+  openModal.value = true
+}
+
 function editPackage(item: IPackage) {
   form.value.id = item.id
+  form.value.guide = item.guide
   form.value.client = item.client
   form.value.description = item.description
   form.value.pieces = item.pieces
   form.value.grossWeight = item.grossWeight
+  form.value.tracking = item.tracking
+  form.value.entryDate = item.entryDate
+  isEdit.value = true
   openModal.value = true
 }
 
 function onCancel() {
   reset()
+  isEdit.value = false
   openModal.value = false
 }
 
 function onSubmit() {
-  updatePackage()
+  if (isEdit.value && form.value.id) {
+    updatePackage()
+  } else {
+    storePackage()
+  }
 }
 
 watchDebounced(
