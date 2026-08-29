@@ -312,18 +312,16 @@ function processFile(file: File) {
 }
 
 function formatDate(dateInput: string | Date): string {
-  if (dateInput instanceof Date) {
-    return format({ date: dateInput, format: 'YYYY-MM-DD', tz: 'America/Managua' })
-  }
-
-  if (dateInput.includes('T')) {
+  if (dateInput instanceof Date || dateInput.includes('T')) {
     return format({ date: new Date(dateInput), format: 'YYYY-MM-DD', tz: 'America/Managua' })
   }
 
   const [datePart, timePart] = dateInput.split(' ')
   const [month, day, year] = datePart.split('/')
-  const isoString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}:00`
-  const date = tzDate(isoString, 'America/New_York')
+  const date = tzDate(
+    `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}:00`,
+    'America/New_York'
+  )
 
   return format({ date, format: 'YYYY-MM-DD', tz: 'America/Managua' })
 }
