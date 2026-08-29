@@ -30,7 +30,8 @@ export default function usePackage() {
     pieces: 0,
     grossWeight: 0,
     entryDate: '',
-    tracking: ''
+    tracking: '',
+    type: ''
   })
 
   async function getPackages() {

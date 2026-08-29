@@ -63,6 +63,13 @@
           type="date"
           rules="required"
         />
+
+        <FieldForm as="select" text="Tipo" name="tipo" v-model="form.type">
+          <option value="">Selecciona un tipo</option>
+          <option v-for="price in prices" :value="price.type" :key="price.id">
+            {{ price.type }}
+          </option>
+        </FieldForm>
       </div>
 
       <div class="modal-action">
@@ -231,6 +238,7 @@ function editPackage(item: IPackage) {
   form.value.grossWeight = item.grossWeight
   form.value.tracking = item.tracking
   form.value.entryDate = item.entryDate
+  form.value.type = item.type
   isEdit.value = true
   openModal.value = true
 }
