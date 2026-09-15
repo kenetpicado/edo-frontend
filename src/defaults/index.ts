@@ -25,7 +25,7 @@ export const defaultMeta = {
   hasPrevPage: false
 }
 
-export const CURRENCY_OPTIONS = {
+export const CURRENCY_OPTIONS: Intl.NumberFormatOptions = {
   style: 'currency',
   currency: 'USD',
   minimumFractionDigits: 2,

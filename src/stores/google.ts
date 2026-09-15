@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { IEmail } from '@/types'
 
-interface IEmailResponse {
+export interface IEmailResponse {
   data: IEmail[]
   nextPageToken?: string
 }

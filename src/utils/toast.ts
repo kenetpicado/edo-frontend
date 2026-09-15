@@ -1,10 +1,8 @@
-import { createToaster } from '@meforma/vue-toaster'
+import { push } from 'notivue'
 
-const toast = createToaster({
-  position: 'bottom',
-  duration: 3000,
-  max: 2,
-  pauseOnHover: false
-})
+const toast = {
+  success: (text: string) => push.success(text),
+  error: (text: string) => push.error(text)
+}
 
 export default toast
